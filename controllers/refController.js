@@ -4,7 +4,7 @@ const nodemailer=require('nodemailer')
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
-require('dotenv').config()
+require('dotenv').config() 
 
 
 
