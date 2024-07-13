@@ -9,11 +9,7 @@ router.patch('/updateref',updateRefs)
 module.exports = router;
 
 
-
-
-// const express = require('express');
-// const router = express.Router();
-
+ 
 // Define your routes here
 router.get('/', (req, res) => {
   res.send('Hello from referral routes!');
