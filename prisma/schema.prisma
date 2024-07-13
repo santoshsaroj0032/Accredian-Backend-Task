@@ -6,7 +6,7 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
-
+ 
 model referalcodes {
   id        Int       @id @default(autoincrement())
   name      String    @db.VarChar(20)
