@@ -1,12 +1,16 @@
  
 
-require('dotenv').config();
+ require('dotenv').config();
 const db = require('../models/db');
 const voucher_codes = require('voucher-code-generator');
 const nodemailer = require('nodemailer');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+ require('dotenv').config() 
 
+
+ 
+ 
 const USER = process.env.EMAIL_USER;
 const PASS = process.env.EMAIL_PASS;
 
