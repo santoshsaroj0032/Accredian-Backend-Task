@@ -1,117 +1,110 @@
-const db=require('../models/db')
-var voucher_codes = require('voucher-code-generator');
-const nodemailer=require('nodemailer')
-const { PrismaClient } = require('@prisma/client')
-const prisma = new PrismaClient()
+ 
 
-require('dotenv').config()
+require('dotenv').config();
+const db = require('../models/db');
+const voucher_codes = require('voucher-code-generator');
+const nodemailer = require('nodemailer');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-
-
-const USER = 'mitheshsrini@gmail.com';
-const PASS='tgtdfgkdmqhwyznu';
-
+const USER = process.env.EMAIL_USER;
+const PASS = process.env.EMAIL_PASS;
 
 const transporter = nodemailer.createTransport({
-    port: 465,               
+    port: 465,
     host: "smtp.gmail.com",
-       auth: {
-            user:USER,
-            pass:PASS,
-         },
+    auth: {
+        user: USER,
+        pass: PASS,
+    },
     secure: true,
-    });
+});
 
-
-exports.getRefs=async(req,res)=>{
-    const refs=await prisma.referalcodes.findMany()
-   res.json({refcodes:refs})
+exports.getRefs = async (req, res) => {
+    try {
+        const refs = await prisma.referalcodes.findMany();
+        res.json({ refcodes: refs });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch referral codes' });
+    }
 }
 
-exports.addRef=async(req,res)=>{
-    const {name,email,fname,femail}=req.body
-    let alreadyexists=false
-    const existingCode=await prisma.referalcodes.findMany({where:{email:email,femail:femail}, orderBy: {id: 'desc'},})
-    if(existingCode.length>0){
-        const today=new Date(); 
-        const createdDate=existingCode[0].createdat;
-        const threeDaysbefore=today.getDate()-3
-        if((createdDate.getDate()>threeDaysbefore)){
-            alreadyexists=true
-        }
-    }
-    if(!alreadyexists){
-        const newRefCode= voucher_codes.generate({
-            length: 5,
-            charset: voucher_codes.charset("alphanumeric")
+exports.addRef = async (req, res) => {
+    const { name, email, fname, femail } = req.body;
+    try {
+        let alreadyExists = false;
+        const existingCodes = await prisma.referalcodes.findMany({ 
+            where: { email: email, femail: femail }, 
+            orderBy: { id: 'desc' },
         });
-        const date=new Date()
-        let day = date.getDate();
-        let month = date.getMonth() ;
-        let year = date.getFullYear();
-        let now=`${year}-${month}-${day}`;
-        const refdata = {
-            name: name,
-            email: email,
-            fname: fname,
-            femail: femail,
-            refcode: newRefCode[0],
-            used: 0,
-            createdat: now
-        }
-          const query='INSERT INTO referalcodes SET ?'
-        try{
-        // const newCode=await prisma.referalcodes.create({data:refdata})
-                          db.query(query,refdata,(err,result)=>{
-                              if(err) throw err;
-                              else {
-                                  const email=sendEmail(refdata.refcode,femail)
-                                   res.status(200).json({msg:'CodeAdded'});
-                              }
-                      })
-        }
-        catch(err){
-            throw err
-        }
-    }
-    else{
-        res.status(200).json({msg:'Referral code already exists'});
-    }
-        
-    }
 
-exports.deleteRef=async(req,res)=>{
-    console.log('Delete Ref')
-}
+        if (existingCodes.length > 0) {
+            const today = new Date();
+            const createdDate = new Date(existingCodes[0].createdat);
+            const threeDaysBefore = new Date(today);
+            threeDaysBefore.setDate(today.getDate() - 3);
 
-exports.updateRefs=async(req,res)=>{
-    console.log('update Ref')
-}
-
-function queryDatabase(sql, params) {
-    return new Promise((resolve, reject) => {
-        db.query(sql, params, (err, result) => {
-            if (err) {
-                return reject(err);
+            if (createdDate > threeDaysBefore) {
+                alreadyExists = true;
             }
-            resolve(result[0]);
-        });
-    });
+        }
+
+        if (!alreadyExists) {
+            const newRefCode = voucher_codes.generate({
+                length: 5,
+                charset: voucher_codes.charset("alphanumeric")
+            })[0];
+            const now = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
+            const refdata = {
+                name: name,
+                email: email,
+                fname: fname,
+                femail: femail,
+                refcode: newRefCode,
+                used: 0,
+                createdat: now
+            };
+
+            const query = 'INSERT INTO referalcodes SET ?';
+            db.query(query, refdata, (err, result) => {
+                if (err) {
+                    console.error('Database insert error:', err);
+                    res.status(500).json({ error: 'Failed to add referral code' });
+                } else {
+                    sendEmail(refdata.refcode, femail);
+                    res.status(200).json({ msg: 'Code added' });
+                }
+            });
+        } else {
+            res.status(200).json({ msg: 'Referral code already exists' });
+        }
+    } catch (error) {
+        console.error('Error adding referral code:', error);
+        res.status(500).json({ error: 'An error occurred while adding the referral code' });
+    }
 }
 
-function sendEmail(refcode,email){
-    const mailData = {
-        from: 'mitheshsrini@gmail.com',  
-          to: email,   
-          subject: 'Accredian Referral Code',
-          text: 'Hello world',
-          html: `<b>Hey there! </b> <br> Please enter <b>${refcode}</b> as your referral code while signing up. <br/>`,
-        };
-        transporter.sendMail(mailData, function (err, info) {
-            if(err)
-              console.log(err)
-            else
-             return(info);
-         });
+exports.deleteRef = async (req, res) => {
+    console.log('Delete Ref');
+}
 
+exports.updateRefs = async (req, res) => {
+    console.log('Update Ref');
+}
+
+function sendEmail(refcode, email) {
+    const mailData = {
+        from: USER,
+        to: email,
+        subject: 'Accredian Referral Code',
+        text: 'Hello world',
+        html: `<b>Hey there!</b><br>Please enter <b>${refcode}</b> as your referral code while signing up.<br/>`,
+    };
+    transporter.sendMail(mailData, (err, info) => {
+        if (err) {
+            console.error('Error sending email:', err);
+        } else {
+            console.log('Email sent:', info.response);
+        }
+    });
 }
