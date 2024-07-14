@@ -1,21 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const {getRefs,addRef,deleteRef,updateRefs} = require('../controllers/refController');
+const { getRefs, addRef, deleteRef, updateRefs } = require('../controllers/refController');
 
-router.get('/getrefs', getRefs);
-router.post('/addref',addRef)
-router.delete('/deleteref',deleteRef)
-router.patch('/updateref',updateRefs)
-module.exports = router;
-
-
- 
- 
-router.get('/ ', (req, res) => {
-  
 // Define your routes here
+router.get('/getrefs', getRefs);
+router.post('/addref', addRef);
+router.delete('/deleteref', deleteRef);
+router.patch('/updateref', updateRefs);
+
 router.get('/', (req, res) => {
-   res.send('Hello from referral routes!');
+    res.send('Hello from referral routes!');
 });
 
 module.exports = router;
